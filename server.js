@@ -21,6 +21,20 @@ var app = express();
 //Q? - what does this do??
 app.use(express.static('public'));
 
+var topTracks = function(artistId, index, callback){
+  var trackSearcher = getFromApi('artists/'+artistId+'/top-tracks',{
+    country: 'US'
+  });
+  trackSearcher.on('end',function(item){
+    var tracks = item.tracks;
+    callback(tracks, index);
+  });
+  trackSearcher.on('error',function(code){
+    callback(code);
+  });
+};
+
+
 app.get('/search/:name', function(req, res) {
   var searchReq = getFromApi('search', {
     q: req.params.name,
@@ -37,8 +51,26 @@ app.get('/search/:name', function(req, res) {
     });
     
     searchRel.on('end',function(item){
+      var relatedCounter = 0;
       artist.related = item.artists;
-      res.json(artist);
+      console.log("artist.related.length",artist.related.length);
+      for(var i=0; i < artist.related.length; i++){
+        console.log("i",i);
+        console.log("artist.related[i].name",artist.related[i].name);
+        topTracks(artist.related[i].id, i, function(result,resultIndex){
+          console.log("result",result);
+          if(!result){
+            console.log("TODO - error handling");
+          }
+          else{
+            artist.related[resultIndex].tracks = result;
+          }
+          relatedCounter++;
+          if(relatedCounter === artist.related.length){
+            res.json(artist);
+          }           
+        });
+      }
     });
 
     searchRel.on('error', function(code){
