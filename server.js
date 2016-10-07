@@ -18,7 +18,6 @@ var getFromApi = function(endpoint, args) {
 };
 
 var app = express();
-//Q? - what does this do??
 app.use(express.static('public'));
 
 var topTracks = function(artistId, index, callback){
@@ -30,7 +29,7 @@ var topTracks = function(artistId, index, callback){
     callback(tracks, index);
   });
   trackSearcher.on('error',function(code){
-    callback(code);
+    callback(code, index);
   });
 };
 
@@ -45,29 +44,29 @@ app.get('/search/:name', function(req, res) {
 
   searchReq.on('end', function(item){
     var artist = item.artists.items[0];
-//    res.json(artist);
+    if(artist == undefined){
+      res.sendStatus(404);
+      return;
+    }
     var searchRel = getFromApi('artists/'+artist.id+'/related-artists',{
       id: artist.id
     });
     
     searchRel.on('end',function(item){
       var relatedCounter = 0;
+      var code = 200;
       artist.related = item.artists;
-      console.log("artist.related.length",artist.related.length);
       for(var i=0; i < artist.related.length; i++){
-        console.log("i",i);
-        console.log("artist.related[i].name",artist.related[i].name);
         topTracks(artist.related[i].id, i, function(result,resultIndex){
-          console.log("result",result);
-          if(!result){
-            console.log("TODO - error handling");
+          if(typeof result == "number"){
+            artist.related[resultIndex].tracks = {};
           }
           else{
             artist.related[resultIndex].tracks = result;
           }
           relatedCounter++;
           if(relatedCounter === artist.related.length){
-            res.json(artist);
+            res.status(code).json(artist);
           }           
         });
       }

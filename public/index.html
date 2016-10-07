@@ -107,13 +107,24 @@ Spotify.prototype.search = function(name) {
         type: 'GET',
         dataType: 'json'
     });
-    ajax.done(this.onSearchDone.bind(this));
+    ajax.done(this.onSearchDone.bind(this))
+    .error(this.onSearchError.bind(this));
 };
 Spotify.prototype.onSearchDone = function(artist) {
     var result = $(this.artistTemplate(artist));
     this.result.empty().append(result);
     this.result.toggleClass('transparent');
 };
+
+Spotify.prototype.onSearchError = function(artist){
+  if(artist.id == null){
+    alert("Sorry, that artist does not exist");
+  }
+  else if(artist.related.length == 0) {
+    alert("Could not find related artists");
+  }
+}
+
 $(document).ready(function() {
     var app = new Spotify();
 });
